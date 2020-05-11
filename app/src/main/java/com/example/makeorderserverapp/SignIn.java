@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.makeorderserverapp.Common.Common;
 import com.example.makeorderserverapp.Model.User;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -67,7 +68,9 @@ public class SignIn extends AppCompatActivity {
                         {
                             //OK
                             Intent home = new Intent(SignIn.this, Home.class);
+                            Common.currentUser = user;
                             startActivity(home);
+                            finish();
                         }
                         else
                         {
