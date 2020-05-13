@@ -14,20 +14,20 @@ import com.example.makeorderserverapp.Interface.ItemClickListener;
 import com.example.makeorderserverapp.R;
 
 
-public class ShopViewHolder extends RecyclerView.ViewHolder implements
+public class ShopItemViewHolder extends RecyclerView.ViewHolder implements
         View.OnClickListener,
         View.OnCreateContextMenuListener
 {
-    public TextView txtMenuName;
-    public ImageView imageView;
+    public TextView item_name;
+    public ImageView item_image;
 
     private ItemClickListener itemClickListener;
 
-    public ShopViewHolder(@NonNull View itemView) {
+    public ShopItemViewHolder(@NonNull View itemView) {
         super(itemView);
 
-        txtMenuName = (TextView) itemView.findViewById(R.id.menu_name);
-        imageView = (ImageView) itemView.findViewById(R.id.menu_image);
+        item_name = (TextView) itemView.findViewById(R.id.item_name);
+        item_image = (ImageView) itemView.findViewById(R.id.item_image);
 
         itemView.setOnCreateContextMenuListener(this);
         itemView.setOnClickListener(this);

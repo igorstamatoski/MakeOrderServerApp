@@ -5,8 +5,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-
+import com.bumptech.glide.Glide;
 import com.example.makeorderserverapp.Common.Common;
+import com.example.makeorderserverapp.Interface.ItemClickListener;
 import com.example.makeorderserverapp.Model.Category;
 import com.example.makeorderserverapp.ViewHolder.ShopViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
@@ -14,10 +15,9 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -25,7 +25,6 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -34,23 +33,18 @@ import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.rengwuxian.materialedittext.MaterialEditText;
-import com.squareup.picasso.Picasso;
-
 import androidx.drawerlayout.widget.DrawerLayout;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.Menu;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.util.UUID;
 
-public class Home extends AppCompatActivity {
+public class Home extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private AppBarConfiguration mAppBarConfiguration;
     TextView txtFullName;
@@ -66,6 +60,7 @@ public class Home extends AppCompatActivity {
     RecyclerView recycler_menu;
     RecyclerView.LayoutManager layoutManager;
     DrawerLayout drawer;
+    NavigationView navigationView;
 
     //Add new Menu Layout
     MaterialEditText edtName;
@@ -73,8 +68,6 @@ public class Home extends AppCompatActivity {
 
     Category newCategory;
     Uri saveUri;
-
-    private final int PICK_IMAGE_REQUEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,7 +92,7 @@ public class Home extends AppCompatActivity {
             }
         });
         drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
@@ -123,7 +116,15 @@ public class Home extends AppCompatActivity {
         recycler_menu.setLayoutManager(layoutManager);
 
         loadMenu();
+
+        //Navigation View Listener
+        setNavigationViewListener();
     }
+
+    private void setNavigationViewListener() {
+        navigationView.setNavigationItemSelectedListener(this);
+    }
+
 
     private void showDialog() {
 
@@ -228,7 +229,7 @@ public class Home extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null)
+        if(requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null)
         {
             saveUri = data.getData();
             btnSelect.setText("Image Selected");
@@ -239,7 +240,7 @@ public class Home extends AppCompatActivity {
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent,"Select Picture"), PICK_IMAGE_REQUEST);
+        startActivityForResult(Intent.createChooser(intent,"Select Picture"), Common.PICK_IMAGE_REQUEST);
     }
 
     private void loadMenu() {
@@ -253,8 +254,22 @@ public class Home extends AppCompatActivity {
             @Override
             protected void populateViewHolder(ShopViewHolder shopViewHolder, Category category, int i) {
                 shopViewHolder.txtMenuName.setText(category.getName());
-                Picasso.with(Home.this).load(category.getImage())
+
+                Glide.with(getBaseContext())
+                        .load(category.getImage())
+                        .centerCrop()
                         .into(shopViewHolder.imageView);
+
+                shopViewHolder.setItemClickListener(new ItemClickListener() {
+                    @Override
+                    public void onClick(View view, int position, boolean isLongClick) {
+                        //Send Category Id and Start new Activity
+                        Intent shopList = new Intent(Home.this, ItemsList.class);
+                        shopList.putExtra("CategoryId", adapter.getRef(position).getKey());
+                        startActivity(shopList);
+
+                    }
+                });
             }
         };
 
@@ -275,4 +290,185 @@ public class Home extends AppCompatActivity {
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
     }
+
+
+    //UPDATE/DELETE
+
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+
+        if(item.getTitle().equals(Common.UPDATE))
+        {
+            showUpdateDialog(adapter.getRef(item.getOrder()).getKey(), adapter.getItem(item.getOrder()));
+            
+        } else   if(item.getTitle().equals(Common.DELETE))
+        {
+            deleteCategory(adapter.getRef(item.getOrder()).getKey());
+
+        }
+
+        return super.onContextItemSelected(item);
+    }
+
+    private void deleteCategory(final String key) {
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(Home.this);
+        alertDialog.setTitle("Delete Category");
+        alertDialog.setMessage("Do you really want to delete this category item?");
+
+        alertDialog.setIcon(R.drawable.ic_delete_sweep_black_24dp);
+
+        //Set Button
+        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+
+                //Delete category
+                categories.child(key).removeValue();
+                Toast.makeText(Home.this,"Shop category was deleted!",Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void showUpdateDialog(final String key, final Category item) {
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(Home.this);
+        alertDialog.setTitle("Update Category");
+        alertDialog.setMessage("Please fill all the information!");
+
+        LayoutInflater inflater = this.getLayoutInflater();
+        View add_category_layout = inflater.inflate(R.layout.add_new_category_layout,null);
+
+        edtName = add_category_layout.findViewById(R.id.edtName);
+        btnSelect = add_category_layout.findViewById(R.id.btnSelect);
+        btnUpload = add_category_layout.findViewById(R.id.btnUpload);
+
+        //Set default name
+        edtName.setText(item.getName());
+
+        //Event for button
+        btnSelect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chooseImage(); //Let user select image from Gallery
+            }
+        });
+
+        btnUpload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                changeImage(item);
+            }
+        });
+
+        alertDialog.setView(add_category_layout);
+        alertDialog.setIcon(R.drawable.ic_update_black_24dp);
+
+        //Set Button
+        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+
+                //Update information
+                item.setName(edtName.getText().toString());
+                categories.child(key).setValue(item);
+            }
+        });
+
+        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void changeImage(final Category item) {
+
+        if(saveUri != null)
+        {
+            final ProgressDialog mDialog = new ProgressDialog(this);
+            mDialog.setMessage("Uploading...");
+            mDialog.show();
+
+            String imageName = UUID.randomUUID().toString();
+            final StorageReference imageFolder = storageReference.child("images/"+imageName);
+            imageFolder.putFile(saveUri)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            mDialog.dismiss();
+                            Toast.makeText(Home.this, "Picture uploaded!",Toast.LENGTH_SHORT).show();
+                            imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+
+                                item.setImage(uri.toString());
+
+                                }
+                            });
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            mDialog.dismiss();
+                            Toast.makeText(Home.this, ""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                    double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
+                    mDialog.setMessage("Uploaded "+progress+"%");
+                }
+            });
+
+        }
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+
+            case R.id.nav_shop: {
+                //do somthing
+                break;
+            }
+//            case R.id.nav_cart: {
+//                //do somthing
+//                Intent cartIntent = new Intent(Home.this, Cart.class);
+//                startActivity(cartIntent);
+//                break;
+//            }
+            case R.id.nav_orders: {
+                //do somthing
+                Intent orderIntent = new Intent(Home.this, OrderStatus.class);
+                startActivity(orderIntent);
+                break;
+            }
+            case R.id.nav_sign_out: {
+                //do somthing
+                Intent signIn = new Intent(Home.this, SignIn.class);
+                signIn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(signIn);
+                break;
+            }
+        }
+
+        return true;
+    }
 }
+
