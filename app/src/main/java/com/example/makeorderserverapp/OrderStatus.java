@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
@@ -62,7 +63,7 @@ public class OrderStatus extends AppCompatActivity {
                 requests
         ) {
             @Override
-            protected void populateViewHolder(OrderViewHolder orderViewHolder, Request request, int i) {
+            protected void populateViewHolder(OrderViewHolder orderViewHolder, final Request request, int i) {
 
                 orderViewHolder.txtOrderId.setText(adapter.getRef(i).getKey());
                 orderViewHolder.txtOrderStatus.setText(Common.convertCodeToStatus(request.getStatus()));
@@ -72,7 +73,10 @@ public class OrderStatus extends AppCompatActivity {
                 orderViewHolder.setItemClickListener(new ItemClickListener() {
                     @Override
                     public void onClick(View view, int position, boolean isLongClick) {
-                        //YOUR CODE HERE
+
+                        Intent trackingOrder = new Intent(OrderStatus.this, TrackingOrder.class);
+                        Common.currentRequest = request;
+                        startActivity(trackingOrder);
                     }
                 });
             }
