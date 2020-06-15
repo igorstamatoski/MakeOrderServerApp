@@ -9,6 +9,7 @@ import com.bumptech.glide.Glide;
 import com.example.makeorderserverapp.Common.Common;
 import com.example.makeorderserverapp.Interface.ItemClickListener;
 import com.example.makeorderserverapp.Model.Category;
+import com.example.makeorderserverapp.Service.ListenOrder;
 import com.example.makeorderserverapp.ViewHolder.ShopViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -26,8 +27,12 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -116,6 +121,10 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
         recycler_menu.setLayoutManager(layoutManager);
 
         loadMenu();
+
+        //Register Service
+        Intent service = new Intent(Home.this, ListenOrder.class);
+        startService(service);
 
         //Navigation View Listener
         setNavigationViewListener();
@@ -325,6 +334,25 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
             public void onClick(DialogInterface dialog, int which) {
 
                 dialog.dismiss();
+
+                //All food in category
+                DatabaseReference items = database.getReference("Shop");
+                Query itemsInCategory = items.orderByChild("catID").equalTo(key);
+                itemsInCategory.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        for(DataSnapshot postSnapShot : dataSnapshot.getChildren())
+                        {
+                            postSnapShot.getRef().removeValue();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+
 
                 //Delete category
                 categories.child(key).removeValue();
