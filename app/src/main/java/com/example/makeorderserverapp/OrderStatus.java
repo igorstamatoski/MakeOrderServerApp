@@ -63,20 +63,46 @@ public class OrderStatus extends AppCompatActivity {
                 requests
         ) {
             @Override
-            protected void populateViewHolder(OrderViewHolder orderViewHolder, final Request request, int i) {
+            protected void populateViewHolder(OrderViewHolder orderViewHolder, final Request request,final int i) {
 
                 orderViewHolder.txtOrderId.setText(adapter.getRef(i).getKey());
                 orderViewHolder.txtOrderStatus.setText(Common.convertCodeToStatus(request.getStatus()));
                 orderViewHolder.txtOrderAddress.setText(request.getAddress());
                 orderViewHolder.txtOrderPhone.setText(request.getPhone());
 
-                orderViewHolder.setItemClickListener(new ItemClickListener() {
+                orderViewHolder.btnEdit.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View view, int position, boolean isLongClick) {
+                    public void onClick(View v) {
+                        showUpdateDialog(adapter.getRef(i).getKey(), adapter.getItem(i));
+                    }
+                });
+
+                orderViewHolder.btnRemove.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        deleteOrder(adapter.getRef(i).getKey());
+                    }
+                });
+
+                orderViewHolder.btnDirection.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
 
                         Intent trackingOrder = new Intent(OrderStatus.this, TrackingOrder.class);
                         Common.currentRequest = request;
                         startActivity(trackingOrder);
+
+                    }
+                });
+
+                orderViewHolder.btnDetails.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                        Intent orderDetail = new Intent(OrderStatus.this, OrderDetail.class);
+                        Common.currentRequest = request;
+                        orderDetail.putExtra("OrderId", adapter.getRef(i).getKey());
+                        startActivity(orderDetail);
                     }
                 });
             }
@@ -84,18 +110,6 @@ public class OrderStatus extends AppCompatActivity {
 
         adapter.notifyDataSetChanged();
         recyclerView.setAdapter(adapter);
-    }
-
-    @Override
-    public boolean onContextItemSelected(@NonNull MenuItem item) {
-
-        if(item.getTitle().equals(Common.UPDATE))
-        {
-            showUpdateDialog(adapter.getRef(item.getOrder()).getKey(), adapter.getItem(item.getOrder()));
-        } else if(item.getTitle().equals(Common.DELETE)) {
-            deleteOrder(adapter.getRef(item.getOrder()).getKey());
-        }
-        return super.onContextItemSelected(item);
     }
 
     private void deleteOrder(final String key) {
@@ -115,6 +129,7 @@ public class OrderStatus extends AppCompatActivity {
 
                 //Delete order
                 requests.child(key).removeValue();
+                adapter.notifyDataSetChanged();
                 Toast.makeText(OrderStatus.this,"Shop item was deleted!",Toast.LENGTH_SHORT).show();
             }
         });
@@ -150,6 +165,8 @@ public class OrderStatus extends AppCompatActivity {
                 item.setStatus(String.valueOf(spinner.getSelectedIndex()));
 
                 requests.child(localKey).setValue(item);
+                adapter.notifyDataSetChanged(); //To update item size
+
 
             }
         });
