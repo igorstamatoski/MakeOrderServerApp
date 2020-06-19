@@ -13,13 +13,17 @@ import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.example.makeorderserverapp.Common.Common;
 import com.example.makeorderserverapp.Interface.ItemClickListener;
+import com.example.makeorderserverapp.Model.Category;
 import com.example.makeorderserverapp.Model.Request;
 import com.example.makeorderserverapp.ViewHolder.OrderViewHolder;
+import com.example.makeorderserverapp.ViewHolder.ShopItemViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.jaredrummler.materialspinner.MaterialSpinner;
@@ -56,14 +60,16 @@ public class OrderStatus extends AppCompatActivity {
     }
 
     private void loadOrders() {
-        adapter = new FirebaseRecyclerAdapter<Request, OrderViewHolder>(
-                Request.class,
-                R.layout.order_layout,
-                OrderViewHolder.class,
-                requests
-        ) {
+
+        FirebaseRecyclerOptions<Request> options = new FirebaseRecyclerOptions.Builder<Request>()
+                .setQuery(requests, Request.class)
+                .build();
+
+
+        adapter = new FirebaseRecyclerAdapter<Request, OrderViewHolder>(options) {
+
             @Override
-            protected void populateViewHolder(OrderViewHolder orderViewHolder, final Request request,final int i) {
+            protected void onBindViewHolder(@NonNull OrderViewHolder orderViewHolder,final int i,final @NonNull Request request) {
 
                 orderViewHolder.txtOrderId.setText(adapter.getRef(i).getKey());
                 orderViewHolder.txtOrderStatus.setText(Common.convertCodeToStatus(request.getStatus()));
@@ -105,9 +111,19 @@ public class OrderStatus extends AppCompatActivity {
                         startActivity(orderDetail);
                     }
                 });
+
+            }
+
+            @NonNull
+            @Override
+            public OrderViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                View itemView = LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.order_layout, parent, false);
+                return new OrderViewHolder(itemView);
             }
         };
 
+        adapter.startListening();
         adapter.notifyDataSetChanged();
         recyclerView.setAdapter(adapter);
     }
@@ -178,5 +194,23 @@ public class OrderStatus extends AppCompatActivity {
             }
         });
         alertDialog.show();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        adapter.startListening();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        adapter.stopListening();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        adapter.startListening();
     }
 }

@@ -9,9 +9,12 @@ import com.bumptech.glide.Glide;
 import com.example.makeorderserverapp.Common.Common;
 import com.example.makeorderserverapp.Interface.ItemClickListener;
 import com.example.makeorderserverapp.Model.Category;
+import com.example.makeorderserverapp.Model.ShopItem;
 import com.example.makeorderserverapp.Service.ListenOrder;
+import com.example.makeorderserverapp.ViewHolder.ShopItemViewHolder;
 import com.example.makeorderserverapp.ViewHolder.ShopViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -44,6 +47,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.Menu;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -254,14 +258,13 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
 
     private void loadMenu() {
 
-        adapter = new FirebaseRecyclerAdapter<Category, ShopViewHolder>(
-                Category.class,
-                R.layout.menu_item,
-                ShopViewHolder.class,
-                categories
-        ) {
+        FirebaseRecyclerOptions<Category> options = new FirebaseRecyclerOptions.Builder<Category>()
+                .setQuery(categories, Category.class)
+                .build();
+
+        adapter = new FirebaseRecyclerAdapter<Category, ShopViewHolder>(options) {
             @Override
-            protected void populateViewHolder(ShopViewHolder shopViewHolder, Category category, int i) {
+            protected void onBindViewHolder(@NonNull ShopViewHolder shopViewHolder, int i, @NonNull Category category) {
                 shopViewHolder.txtMenuName.setText(category.getName());
 
                 Glide.with(getBaseContext())
@@ -279,11 +282,41 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
 
                     }
                 });
+
+            }
+
+            @NonNull
+            @Override
+            public ShopViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                View itemView = LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.menu_item, parent, false);
+                return new ShopViewHolder(itemView);
             }
         };
 
+
+        adapter.startListening();
         adapter.notifyDataSetChanged();
         recycler_menu.setAdapter(adapter);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        adapter.stopListening();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        adapter.startListening();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        adapter.startListening();
     }
 
     @Override

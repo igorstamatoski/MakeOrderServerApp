@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -23,12 +24,14 @@ import com.example.makeorderserverapp.Interface.ItemClickListener;
 import com.example.makeorderserverapp.Model.ShopItem;
 import com.example.makeorderserverapp.ViewHolder.ShopItemViewHolder;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -164,15 +167,16 @@ public class ItemsList extends AppCompatActivity {
 
     private void loadListItems(String categoryId) {
 
-        adapter = new FirebaseRecyclerAdapter<ShopItem, ShopItemViewHolder>(
-                ShopItem.class,
-                R.layout.shop_item,
-                ShopItemViewHolder.class,
-                itemsList.orderByChild("catID").equalTo(categoryId)
-        ) {
+        Query listItemByCategoryId = itemsList.orderByChild("catID").equalTo(categoryId);
+        FirebaseRecyclerOptions<ShopItem> options = new FirebaseRecyclerOptions.Builder<ShopItem>()
+                .setQuery(listItemByCategoryId, ShopItem.class)
+                .build();
+
+        adapter = new FirebaseRecyclerAdapter<ShopItem, ShopItemViewHolder>(options) {
             @Override
-            protected void populateViewHolder(ShopItemViewHolder shopItemViewHolder, ShopItem shopItem, int i) {
-                    shopItemViewHolder.item_name.setText(shopItem.getName());
+            protected void onBindViewHolder(@NonNull ShopItemViewHolder shopItemViewHolder, int i, @NonNull ShopItem shopItem) {
+
+                shopItemViewHolder.item_name.setText(shopItem.getName());
 
                 Glide.with(getBaseContext())
                         .load(shopItem.getImage())
@@ -185,8 +189,20 @@ public class ItemsList extends AppCompatActivity {
                         //CODE HERE
                     }
                 });
+
+            }
+
+            @NonNull
+            @Override
+            public ShopItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
+                View itemView = LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.shop_item, parent, false);
+                return new ShopItemViewHolder(itemView);
             }
         };
+
+        adapter.startListening();
         adapter.notifyDataSetChanged();
         recyclerView.setAdapter(adapter);
     }
@@ -244,6 +260,25 @@ public class ItemsList extends AppCompatActivity {
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(Intent.createChooser(intent,"Select Picture"), Common.PICK_IMAGE_REQUEST);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        adapter.stopListening();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        adapter.startListening();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        adapter.startListening();
     }
 
     @Override
