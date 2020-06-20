@@ -17,7 +17,7 @@
     <string name="menu_send">Send</string>
 
     //My custom menu
-    <string name="menu_shop">Shop</string>
+    <string name="menu_shop">Manage Shop</string>
     <string name="menu_cart">Cart</string>
     <string name="menu_orders">Orders</string>
     <string name="menu_sign_out">Sign Out</string>

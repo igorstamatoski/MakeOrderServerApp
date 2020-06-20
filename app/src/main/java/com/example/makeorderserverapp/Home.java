@@ -506,14 +506,11 @@ public class Home extends AppCompatActivity implements NavigationView.OnNavigati
 
             case R.id.nav_shop: {
                 //do somthing
+                Intent intent = new Intent(Home.this, Home.class);
+                startActivity(intent);
                 break;
             }
-//            case R.id.nav_cart: {
-//                //do somthing
-//                Intent cartIntent = new Intent(Home.this, Cart.class);
-//                startActivity(cartIntent);
-//                break;
-//            }
+
             case R.id.nav_orders: {
                 //do somthing
                 Intent orderIntent = new Intent(Home.this, OrderStatus.class);
